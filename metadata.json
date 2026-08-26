@@ -1,0 +1,6 @@
+{
+  "name": "FinTrack",
+  "description": "Herramienta para registrar ingresos, gastos mensuales fijos y variables, categorizar gastos, programar recordatorios de facturas y ver reportes en tiempo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
