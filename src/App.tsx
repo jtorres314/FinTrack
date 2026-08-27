@@ -246,6 +246,15 @@ export default function App() {
     setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
+  const handleEditTransaction = (updated: Transaction) => {
+    setTransactions(prev => prev.map(t => (t.id === updated.id ? updated : t)));
+    setToast({
+      id: `edit-trans-${Date.now()}`,
+      title: '✏️ Transacción Actualizada',
+      message: `Se actualizaron los datos de "${updated.title}".`
+    });
+  };
+
   const handleAddCategory = (cat: Omit<Category, 'id'>) => {
     const newCat: Category = {
       ...cat,
@@ -664,6 +673,7 @@ export default function App() {
               transactions={transactions}
               categories={categories}
               onAddTransaction={handleAddTransaction}
+              onEditTransaction={handleEditTransaction}
               onDeleteTransaction={handleDeleteTransaction}
             />
           </div>

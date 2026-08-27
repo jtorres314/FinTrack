@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Filter, Trash2, Plus, ArrowUpRight, ArrowDownLeft, X, Calendar } from 'lucide-react';
+import { Search, Filter, Trash2, Plus, ArrowUpRight, ArrowDownLeft, X, Calendar, Edit2, CheckCircle2 } from 'lucide-react';
 import { Transaction, Category, TransactionType } from '../types';
 import { formatCurrency } from '../utils/finance';
 
@@ -7,10 +7,17 @@ interface TransactionsTabProps {
   transactions: Transaction[];
   categories: Category[];
   onAddTransaction: (t: Omit<Transaction, 'id'>) => void;
+  onEditTransaction: (t: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
 }
 
-export function TransactionsTab({ transactions, categories, onAddTransaction, onDeleteTransaction }: TransactionsTabProps) {
+export function TransactionsTab({ 
+  transactions, 
+  categories, 
+  onAddTransaction, 
+  onEditTransaction,
+  onDeleteTransaction 
+}: TransactionsTabProps) {
   const [search, setSearch] = React.useState('');
   const [filterType, setFilterType] = React.useState<'all' | TransactionType>('all');
   const [filterCategory, setFilterCategory] = React.useState<string>('all');
@@ -22,6 +29,14 @@ export function TransactionsTab({ transactions, categories, onAddTransaction, on
   const [newDate, setNewDate] = React.useState(new Date().toISOString().split('T')[0]);
   const [newCategoryId, setNewCategoryId] = React.useState(categories[0]?.id || '');
   const [newType, setNewType] = React.useState<TransactionType>('expense');
+
+  // Edit Transaction Form State
+  const [editingTransaction, setEditingTransaction] = React.useState<Transaction | null>(null);
+  const [editTitle, setEditTitle] = React.useState('');
+  const [editAmount, setEditAmount] = React.useState('');
+  const [editDate, setEditDate] = React.useState('');
+  const [editCategoryId, setEditCategoryId] = React.useState('');
+  const [editType, setEditType] = React.useState<TransactionType>('expense');
 
   // Sync default category when categories list changes or modal opens
   React.useEffect(() => {
@@ -46,7 +61,7 @@ export function TransactionsTab({ transactions, categories, onAddTransaction, on
       title: newTitle.trim(),
       amount: parseFloat(newAmount),
       date: newDate,
-      categoryId: newCategoryId,
+      categoryId: newType === 'income' ? '' : newCategoryId,
       type: newType,
     });
 
@@ -56,6 +71,31 @@ export function TransactionsTab({ transactions, categories, onAddTransaction, on
     setNewDate(new Date().toISOString().split('T')[0]);
     setNewType('expense');
     setShowAddModal(false);
+  };
+
+  const handleStartEdit = (t: Transaction) => {
+    setEditingTransaction(t);
+    setEditTitle(t.title);
+    setEditAmount(t.amount.toString());
+    setEditDate(t.date);
+    setEditCategoryId(t.categoryId || (categories[0]?.id ?? ''));
+    setEditType(t.type);
+  };
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTransaction || !editTitle.trim() || !editAmount) return;
+
+    onEditTransaction({
+      id: editingTransaction.id,
+      title: editTitle.trim(),
+      amount: parseFloat(editAmount),
+      date: editDate,
+      categoryId: editType === 'income' ? '' : editCategoryId,
+      type: editType,
+    });
+
+    setEditingTransaction(null);
   };
 
   return (
@@ -69,7 +109,7 @@ export function TransactionsTab({ transactions, categories, onAddTransaction, on
         
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md active:scale-95 transition-all"
+          className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer"
         >
           <Plus size={14} />
           Agregar
@@ -151,7 +191,7 @@ export function TransactionsTab({ transactions, categories, onAddTransaction, on
             return (
               <div 
                 key={t.id} 
-                className="flex items-center justify-between p-3.5 bg-white border border-slate-100 rounded-2xl shadow-sm transition-all hover:border-slate-200"
+                className="flex items-center justify-between p-3.5 bg-white border border-slate-100 rounded-2xl shadow-sm transition-all hover:border-slate-200 hover:shadow-md group"
               >
                 <div className="flex items-center gap-3">
                   {/* Icon indicator */}
@@ -180,8 +220,8 @@ export function TransactionsTab({ transactions, categories, onAddTransaction, on
                   </div>
                 </div>
 
-                {/* Amount & delete button */}
-                <div className="flex items-center gap-3">
+                {/* Amount & action buttons (Edit + Delete) */}
+                <div className="flex items-center gap-2.5">
                   <div className="text-right">
                     <p className={`text-xs font-bold ${isIncome ? 'text-emerald-600' : 'text-slate-900'}`}>
                       {isIncome ? '+' : '-'}{formatCurrency(t.amount)}
@@ -191,13 +231,24 @@ export function TransactionsTab({ transactions, categories, onAddTransaction, on
                     </p>
                   </div>
 
-                  <button
-                    onClick={() => onDeleteTransaction(t.id)}
-                    className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
-                    title="Eliminar"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  <div className="flex items-center gap-1 border-l border-slate-100 pl-2">
+                    <button
+                      onClick={() => handleStartEdit(t)}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all cursor-pointer"
+                      title="Editar transacción"
+                      aria-label="Editar transacción"
+                    >
+                      <Edit2 size={13} />
+                    </button>
+                    <button
+                      onClick={() => onDeleteTransaction(t.id)}
+                      className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                      title="Eliminar"
+                      aria-label="Eliminar transacción"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -205,10 +256,160 @@ export function TransactionsTab({ transactions, categories, onAddTransaction, on
         )}
       </div>
 
+      {/* Edit Transaction Modal */}
+      {editingTransaction && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end md:items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="w-full max-w-sm bg-white rounded-t-3xl md:rounded-3xl p-6 shadow-2xl animate-slide-up border border-slate-100 max-h-[92vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                  <Edit2 size={15} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">Editar Transacción</h3>
+                  <p className="text-[10px] text-slate-400 font-medium">Corrige datos o monto</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setEditingTransaction(null)}
+                className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-full transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              {/* Type Switcher */}
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1.5">Tipo</label>
+                <div className="grid grid-cols-3 gap-1 bg-slate-100 p-1 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setEditType('expense')}
+                    className={`py-1.5 rounded-lg text-[10px] font-bold transition-all ${editType === 'expense' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Variable
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditType('fixed_expense')}
+                    className={`py-1.5 rounded-lg text-[10px] font-bold transition-all ${editType === 'fixed_expense' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Fijo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditType('income')}
+                    className={`py-1.5 rounded-lg text-[10px] font-bold transition-all ${editType === 'income' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Ingreso
+                  </button>
+                </div>
+              </div>
+
+              {/* Title / Description */}
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Descripción</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Súper, Alquiler, Salario"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 focus:bg-white text-xs text-slate-800 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all font-medium"
+                />
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Monto ($ USD)</label>
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-500 font-extrabold text-sm">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    placeholder="0.00"
+                    value={editAmount}
+                    onChange={(e) => setEditAmount(e.target.value)}
+                    className="w-full pl-7 pr-4 py-2.5 bg-slate-50 focus:bg-white text-sm text-slate-800 font-extrabold rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Category selector */}
+              {editType !== 'income' && (
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Categoría</label>
+                  {categories.length === 0 ? (
+                    <div className="text-[10px] text-rose-500 font-bold bg-rose-50 px-3 py-2 rounded-xl border border-rose-100">
+                      ⚠️ No tienes categorías creadas.
+                    </div>
+                  ) : (
+                    <select
+                      value={editCategoryId}
+                      onChange={(e) => setEditCategoryId(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 focus:bg-white text-xs text-slate-800 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all cursor-pointer font-medium"
+                    >
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
+
+              {/* Date with quick button */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                    <Calendar size={11} />
+                    Fecha
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setEditDate(new Date().toISOString().split('T')[0])}
+                    className="text-[9px] font-bold text-blue-600 hover:underline bg-blue-50 px-1.5 py-0.5 rounded cursor-pointer"
+                  >
+                    Hoy
+                  </button>
+                </div>
+                <input
+                  type="date"
+                  required
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 focus:bg-white text-xs text-slate-800 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all font-semibold cursor-pointer"
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingTransaction(null)}
+                  className="w-1/3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all active:scale-95 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="w-2/3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCircle2 size={13} />
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Add Transaction Modal */}
       {showAddModal && (
-        <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end md:items-center justify-center p-4 z-50">
-          <div className="w-full max-w-sm bg-white rounded-t-3xl md:rounded-3xl p-6 shadow-2xl animate-slide-up">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end md:items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="w-full max-w-sm bg-white rounded-t-3xl md:rounded-3xl p-6 shadow-2xl animate-slide-up border border-slate-100 max-h-[92vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-5">
               <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Nueva Transacción</h3>
               <button 
