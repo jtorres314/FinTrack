@@ -272,7 +272,7 @@ export default function App() {
   };
 
   // Pay standard recurring bill (vence)
-  const handlePayRecurringBill = (billId: string, isLastPayment?: boolean) => {
+  const handlePayRecurringBill = (billId: string, isLastPayment?: boolean, paymentDate?: string) => {
     const bill = bills.find(b => b.id === billId);
     if (!bill) return;
 
@@ -283,10 +283,12 @@ export default function App() {
       targetCatId = categories[0]?.id || '';
     }
 
+    const effectiveDate = paymentDate || simulatedDate;
+
     handleAddTransaction({
       title: isLastPayment ? `Último Pago: ${bill.title}` : `Factura: ${bill.title}`,
       amount: bill.amount,
-      date: simulatedDate,
+      date: effectiveDate,
       categoryId: targetCatId,
       type: 'expense',
     });
@@ -298,7 +300,7 @@ export default function App() {
       setToast({
         id: `pay-confirm-${Date.now()}`,
         title: '🏁 Último Pago Registrado',
-        message: `Has pagado y finalizado la programación de "${bill.title}" por ${formatCurrency(bill.amount)}.`,
+        message: `Has pagado y finalizado la programación de "${bill.title}" por ${formatCurrency(bill.amount)} el día ${effectiveDate}.`,
       });
     } else {
       // 2. Advance due date of the bill
@@ -318,7 +320,7 @@ export default function App() {
       setToast({
         id: `pay-confirm-${Date.now()}`,
         title: '💵 Pago Registrado',
-        message: `Has pagado ${bill.title} por ${formatCurrency(bill.amount)}. Próximo vencimiento: ${nextDate}.`,
+        message: `Has pagado ${bill.title} por ${formatCurrency(bill.amount)} con fecha ${effectiveDate}. Próximo vencimiento: ${nextDate}.`,
       });
     }
   };

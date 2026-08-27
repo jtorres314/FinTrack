@@ -8,7 +8,7 @@ interface SchedulePaymentsWidgetProps {
   categories: Category[];
   simulatedDateStr: string;
   onAddBill: (bill: Omit<RecurringBill, 'id' | 'isPaid'>) => void;
-  onPayBill: (id: string, isLastPayment?: boolean) => void;
+  onPayBill: (id: string, isLastPayment?: boolean, paymentDate?: string) => void;
   onDeleteBill: (id: string) => void;
   onAddCategory: (cat: Omit<Category, 'id'>) => void;
 }
@@ -23,6 +23,27 @@ export function SchedulePaymentsWidget({
   onAddCategory,
 }: SchedulePaymentsWidgetProps) {
   const [showAddModal, setShowAddModal] = React.useState(false);
+
+  // Pay Bill Modal State (Allows selecting the exact payment date)
+  const [payModalData, setPayModalData] = React.useState<{
+    bill: RecurringBill;
+    isLastPayment: boolean;
+  } | null>(null);
+  const [paymentDate, setPaymentDate] = React.useState<string>(simulatedDateStr || new Date().toISOString().split('T')[0]);
+
+  // Open Pay Modal Handler
+  const handleOpenPayModal = (bill: RecurringBill, isLastPayment: boolean) => {
+    setPayModalData({ bill, isLastPayment });
+    setPaymentDate(simulatedDateStr || new Date().toISOString().split('T')[0]);
+  };
+
+  const handleConfirmPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payModalData) return;
+    const finalDate = paymentDate || simulatedDateStr || new Date().toISOString().split('T')[0];
+    onPayBill(payModalData.bill.id, payModalData.isLastPayment, finalDate);
+    setPayModalData(null);
+  };
 
   // New Bill Form State
   const [title, setTitle] = React.useState('');
@@ -289,16 +310,14 @@ export function SchedulePaymentsWidget({
                     <p className="text-xs font-extrabold text-slate-900">{formatCurrency(bill.amount)}</p>
                     <div className="flex flex-col items-end gap-1">
                       <button
-                        onClick={() => onPayBill(bill.id, false)}
+                        onClick={() => handleOpenPayModal(bill, false)}
                         className="text-[9px] text-blue-600 font-extrabold hover:underline tracking-tight flex items-center justify-end gap-0.5"
                       >
                         <CheckCircle2 size={10} />
                         Marcar Pago
                       </button>
                       <button
-                        onClick={() => {
-                          onPayBill(bill.id, true);
-                        }}
+                        onClick={() => handleOpenPayModal(bill, true)}
                         className="text-[9px] text-rose-600 font-extrabold hover:underline tracking-tight flex items-center justify-end gap-0.5"
                         title="Registrar último pago y eliminar programación"
                       >
@@ -324,6 +343,149 @@ export function SchedulePaymentsWidget({
           })
         )}
       </div>
+
+      {/* Pay Bill Confirmation Modal (With Payment Date Selector) */}
+      {payModalData && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-end md:items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="w-full max-w-sm bg-white rounded-t-3xl md:rounded-3xl p-6 shadow-2xl animate-slide-up border border-slate-100">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs ${
+                  payModalData.isLastPayment ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600'
+                }`}>
+                  <Calendar size={16} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-xs uppercase tracking-wider">
+                    {payModalData.isLastPayment ? 'Registrar Último Pago' : 'Registrar Pago de Factura'}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-semibold">Selecciona la fecha del pago</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setPayModalData(null)}
+                className="p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-full transition-all"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Bill Info Card */}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mb-4 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Factura</span>
+                <h4 className="text-sm font-extrabold text-slate-800">{payModalData.bill.title}</h4>
+                <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                  Vence: <span className="font-bold text-slate-700">{formatToDayMonth(payModalData.bill.dueDate)}</span>
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Importe</span>
+                <p className="text-base font-black text-blue-600">{formatCurrency(payModalData.bill.amount)}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleConfirmPayment} className="space-y-4">
+              {/* Payment Date Field */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="block text-[10px] uppercase font-bold text-slate-500">
+                    Fecha en que se realiza el pago
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentDate(simulatedDateStr || new Date().toISOString().split('T')[0])}
+                      className="text-[9px] font-bold text-blue-600 hover:underline bg-blue-50 px-1.5 py-0.5 rounded"
+                    >
+                      Hoy
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentDate(payModalData.bill.dueDate)}
+                      className="text-[9px] font-bold text-slate-600 hover:underline bg-slate-100 px-1.5 py-0.5 rounded"
+                    >
+                      Vencimiento
+                    </button>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <input
+                    type="date"
+                    required
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-50 focus:bg-white text-xs text-slate-800 rounded-xl border border-slate-200 focus:border-blue-500 outline-none transition-all font-bold cursor-pointer"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1 pl-0.5">
+                  Esta fecha se registrará en el historial de transacciones y balance.
+                </p>
+              </div>
+
+              {/* Payment Mode Toggle */}
+              <div className="bg-slate-50/80 p-2 rounded-xl border border-slate-100">
+                <label className="block text-[9px] uppercase font-bold text-slate-400 mb-1.5 px-1">
+                  Modalidad de Pago
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setPayModalData(prev => prev ? { ...prev, isLastPayment: false } : null)}
+                    className={`py-1.5 px-2 rounded-lg text-[10px] font-bold transition-all ${
+                      !payModalData.isLastPayment
+                        ? 'bg-white text-blue-600 shadow-xs border border-blue-200'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    Pago Periódico
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPayModalData(prev => prev ? { ...prev, isLastPayment: true } : null)}
+                    className={`py-1.5 px-2 rounded-lg text-[10px] font-bold transition-all ${
+                      payModalData.isLastPayment
+                        ? 'bg-white text-rose-600 shadow-xs border border-rose-200'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    Último Pago
+                  </button>
+                </div>
+                <p className="text-[9px] text-slate-400 mt-1.5 px-1 font-medium">
+                  {payModalData.isLastPayment 
+                    ? '⚠️ Registra el gasto y finaliza la suscripción (se eliminará de facturas programadas).' 
+                    : '🔄 Registra el gasto y avanza automáticamente al siguiente período.'}
+                </p>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setPayModalData(null)}
+                  className="w-1/3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-all active:scale-95"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className={`w-2/3 py-2.5 text-white font-bold rounded-xl text-xs shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 ${
+                    payModalData.isLastPayment 
+                      ? 'bg-rose-600 hover:bg-rose-700' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  <CheckCircle2 size={13} />
+                  Confirmar Pago
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Add Bill Modal */}
       {showAddModal && (
