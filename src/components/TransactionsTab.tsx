@@ -53,6 +53,43 @@ export function TransactionsTab({
     return matchesSearch && matchesType && matchesCat;
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  // Calculate totals for the filtered results
+  const filteredTotals = React.useMemo(() => {
+    let income = 0;
+    let variableExpense = 0;
+    let fixedExpense = 0;
+
+    filtered.forEach(t => {
+      if (t.type === 'income') {
+        income += t.amount;
+      } else if (t.type === 'fixed_expense') {
+        fixedExpense += t.amount;
+      } else {
+        variableExpense += t.amount;
+      }
+    });
+
+    const totalExpense = variableExpense + fixedExpense;
+    const net = income - totalExpense;
+
+    return {
+      count: filtered.length,
+      income,
+      variableExpense,
+      fixedExpense,
+      totalExpense,
+      net,
+    };
+  }, [filtered]);
+
+  const isFiltered = search.trim() !== '' || filterType !== 'all' || filterCategory !== 'all';
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setFilterType('all');
+    setFilterCategory('all');
+  };
+
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newAmount) return;
@@ -160,19 +197,112 @@ export function TransactionsTab({
           </button>
         </div>
 
-        {/* Category dropdown filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Filtrar Categoría:</span>
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded-lg border-none outline-none cursor-pointer transition-colors"
-          >
-            <option value="all">Todas</option>
-            {categories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
+        {/* Category dropdown filter and reset button */}
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Filtrar Categoría:</span>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 px-2 py-1 rounded-lg border-none outline-none cursor-pointer transition-colors"
+            >
+              <option value="all">Todas las categorías</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {isFiltered && (
+            <button
+              onClick={handleResetFilters}
+              className="text-[10px] font-bold text-blue-600 hover:text-blue-800 hover:underline bg-blue-50 px-2 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1"
+            >
+              <X size={11} />
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* FILTERED TOTALS SUMMARY BANNER */}
+      <div className="mb-4 bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Status info & count */}
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-black shadow-2xs">
+              {filteredTotals.count} {filteredTotals.count === 1 ? 'movimiento' : 'movimientos'}
+            </span>
+            {isFiltered ? (
+              <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1">
+                <Filter size={12} className="text-blue-500" />
+                Total del filtro activo:
+              </span>
+            ) : (
+              <span className="text-[11px] font-bold text-slate-400">
+                Total acumulado en el historial:
+              </span>
+            )}
+          </div>
+
+          {/* Dynamic Totals based on filter */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {filterType === 'expense' && (
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-50 border border-rose-100 rounded-xl">
+                <span className="text-[10px] font-extrabold uppercase text-rose-500">Total Gastos Var:</span>
+                <span className="text-xs font-black text-rose-600">
+                  -{formatCurrency(filteredTotals.variableExpense)}
+                </span>
+              </div>
+            )}
+
+            {filterType === 'fixed_expense' && (
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-100 rounded-xl">
+                <span className="text-[10px] font-extrabold uppercase text-blue-500">Total Gastos Fijos:</span>
+                <span className="text-xs font-black text-blue-600">
+                  -{formatCurrency(filteredTotals.fixedExpense)}
+                </span>
+              </div>
+            )}
+
+            {filterType === 'income' && (
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-xl">
+                <span className="text-[10px] font-extrabold uppercase text-emerald-500">Total Ingresos:</span>
+                <span className="text-xs font-black text-emerald-600">
+                  +{formatCurrency(filteredTotals.income)}
+                </span>
+              </div>
+            )}
+
+            {filterType === 'all' && (
+              <div className="flex items-center gap-2 text-xs font-bold flex-wrap">
+                {filteredTotals.income > 0 && (
+                  <div className="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl">
+                    <span className="text-[10px] text-emerald-600 font-semibold uppercase">Ingresos:</span>
+                    <span className="font-extrabold">+{formatCurrency(filteredTotals.income)}</span>
+                  </div>
+                )}
+
+                {filteredTotals.totalExpense > 0 && (
+                  <div className="flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-100 rounded-xl">
+                    <span className="text-[10px] text-rose-600 font-semibold uppercase">Gastos:</span>
+                    <span className="font-extrabold">-{formatCurrency(filteredTotals.totalExpense)}</span>
+                  </div>
+                )}
+
+                <div className={`flex items-center gap-1 px-2.5 py-1 rounded-xl border ${
+                  filteredTotals.net >= 0 
+                    ? 'bg-blue-50/80 text-blue-800 border-blue-200' 
+                    : 'bg-rose-50/80 text-rose-800 border-rose-200'
+                }`}>
+                  <span className="text-[10px] uppercase font-bold text-slate-500">Neto:</span>
+                  <span className="font-black">
+                    {filteredTotals.net >= 0 ? '+' : ''}{formatCurrency(filteredTotals.net)}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
