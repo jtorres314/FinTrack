@@ -52,6 +52,31 @@ export function parseDate(dateStr: string): Date {
   return new Date(year, month - 1, day);
 }
 
+// Get today's date in local YYYY-MM-DD format
+export function getTodayDateString(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Format date for user-friendly display (e.g. "30 ago 2026")
+export function formatDateDisplay(dateStr?: string): string {
+  if (!dateStr) return '';
+  try {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, (m || 1) - 1, d || 1);
+    return date.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  } catch (e) {
+    return dateStr;
+  }
+}
+
 // Calculate days difference between two dates
 export function daysBetween(date1: Date, date2: Date): number {
   const d1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());

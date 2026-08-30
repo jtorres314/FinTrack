@@ -22,7 +22,8 @@ import {
   Car,
   Tv,
   ShoppingBag,
-  Award
+  Award,
+  Calendar
 } from 'lucide-react';
 
 import { Category, Transaction, RecurringBill, AppNotification, TransactionType } from './types';
@@ -38,7 +39,9 @@ import {
   checkBudgets, 
   checkUpcomingBills, 
   advanceDueDate,
-  formatCurrency
+  formatCurrency,
+  getTodayDateString,
+  formatDateDisplay
 } from './utils/finance';
 
 import { MobileFrame } from './components/MobileFrame';
@@ -124,8 +127,26 @@ export default function App() {
     return saved || '10/25';
   });
 
-  const [simulatedDate, setSimulatedDate] = useState<string>('2026-07-26');
+  const [simulatedDate, setSimulatedDate] = useState<string>(() => getTodayDateString());
   const [activeTab, setActiveTab] = useState<'home' | 'transactions' | 'analytics' | 'settings'>('home');
+
+  // Keep today's date verified and updated across day changes or window focus
+  useEffect(() => {
+    const checkToday = () => {
+      const today = getTodayDateString();
+      setSimulatedDate(prev => {
+        // If it was tracking today's date, keep it synchronized
+        return today;
+      });
+    };
+    checkToday();
+    window.addEventListener('focus', checkToday);
+    const interval = setInterval(checkToday, 60000);
+    return () => {
+      window.removeEventListener('focus', checkToday);
+      clearInterval(interval);
+    };
+  }, []);
 
   // --- UI Interactivity ---
   const [toast, setToast] = useState<{ id: string; title: string; message: string } | null>(null);
@@ -137,7 +158,7 @@ export default function App() {
   const [transTitle, setTransTitle] = useState('');
   const [transAmount, setTransAmount] = useState('');
   const [transCategoryId, setTransCategoryId] = useState('');
-  const [transDate, setTransDate] = useState('2026-07-26');
+  const [transDate, setTransDate] = useState<string>(() => getTodayDateString());
 
   // --- Synchronize to Local Storage ---
   useEffect(() => {
@@ -369,7 +390,7 @@ export default function App() {
     handleAddTransaction({
       title: transTitle.trim(),
       amount: amountNum,
-      date: transDate || simulatedDate,
+      date: transDate || getTodayDateString(),
       categoryId: catId,
       type: transType,
     });
@@ -378,7 +399,7 @@ export default function App() {
     setTransTitle('');
     setTransAmount('');
     setTransCategoryId(categories[0]?.id || '');
-    setTransDate(simulatedDate);
+    setTransDate(getTodayDateString());
     setShowTransModal(false);
 
     // Dynamic toast
@@ -400,7 +421,7 @@ export default function App() {
     handleAddTransaction({
       title: 'Festín Extraordinario Demo',
       amount: (foodCat.budget || 300) + 50,
-      date: simulatedDate,
+      date: getTodayDateString(),
       categoryId: foodCat.id,
       type: 'expense',
     });
@@ -419,7 +440,7 @@ export default function App() {
       setCardNumber('4532 8765 4321 8635');
       setCardExpiry('10/30');
       setCardFrom('10/25');
-      setSimulatedDate('2026-07-26');
+      setSimulatedDate(getTodayDateString());
       setActiveTab('home');
       setToast({
         id: `reset-toast-${Date.now()}`,
@@ -604,7 +625,7 @@ export default function App() {
                      setTransTitle('');
                      setTransAmount('');
                      setTransCategoryId('');
-                     setTransDate(simulatedDate);
+                     setTransDate(getTodayDateString());
                      setShowTransModal(true);
                    }}
                    className="bg-white hover:bg-slate-50 border border-slate-100 rounded-3xl p-4 flex flex-col items-center text-center shadow-xs transition-all active:scale-95"
@@ -640,7 +661,7 @@ export default function App() {
                      setTransTitle('');
                      setTransAmount('');
                      setTransCategoryId(categories[0]?.id || '');
-                     setTransDate(simulatedDate);
+                     setTransDate(getTodayDateString());
                      setShowTransModal(true);
                    }}
                    className="bg-white hover:bg-slate-50 border border-slate-100 rounded-3xl p-4 flex flex-col items-center text-center shadow-xs transition-all active:scale-95"
@@ -847,13 +868,25 @@ export default function App() {
  
               {/* Date */}
               <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1">Fecha</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                    <Calendar size={11} />
+                    Fecha
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setTransDate(getTodayDateString())}
+                    className="text-[9px] font-bold text-blue-600 hover:underline bg-blue-50 px-1.5 py-0.5 rounded cursor-pointer"
+                  >
+                    Hoy
+                  </button>
+                </div>
                 <input
                   type="date"
                   required
                   value={transDate}
                   onChange={(e) => setTransDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 focus:bg-white text-xs text-slate-800 rounded-xl border border-slate-100 focus:border-blue-500 outline-none transition-all font-semibold"
+                  className="w-full px-3 py-2 bg-slate-50 focus:bg-white text-xs text-slate-800 rounded-xl border border-slate-100 focus:border-blue-500 outline-none transition-all font-semibold cursor-pointer"
                 />
               </div>
  
@@ -903,7 +936,7 @@ export default function App() {
               setTransTitle('');
               setTransAmount('');
               setTransCategoryId(categories[0]?.id || '');
-              setTransDate(simulatedDate);
+              setTransDate(getTodayDateString());
               setShowTransModal(true);
             }}
             className="flex items-center justify-center w-[52px] h-[52px] bg-gradient-to-tr from-blue-600 to-blue-500 text-white rounded-2xl shadow-lg shadow-blue-500/30 hover:scale-105 active:scale-95 hover:shadow-blue-500/40 transition-all border-4 border-white"

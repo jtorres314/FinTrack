@@ -1,7 +1,7 @@
 import React from 'react';
 import { Search, Filter, Trash2, Plus, ArrowUpRight, ArrowDownLeft, X, Calendar, Edit2, CheckCircle2 } from 'lucide-react';
 import { Transaction, Category, TransactionType } from '../types';
-import { formatCurrency } from '../utils/finance';
+import { formatCurrency, getTodayDateString } from '../utils/finance';
 
 interface TransactionsTabProps {
   transactions: Transaction[];
@@ -26,7 +26,7 @@ export function TransactionsTab({
   // New Transaction Form State
   const [newTitle, setNewTitle] = React.useState('');
   const [newAmount, setNewAmount] = React.useState('');
-  const [newDate, setNewDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [newDate, setNewDate] = React.useState(getTodayDateString());
   const [newCategoryId, setNewCategoryId] = React.useState(categories[0]?.id || '');
   const [newType, setNewType] = React.useState<TransactionType>('expense');
 
@@ -37,6 +37,15 @@ export function TransactionsTab({
   const [editDate, setEditDate] = React.useState('');
   const [editCategoryId, setEditCategoryId] = React.useState('');
   const [editType, setEditType] = React.useState<TransactionType>('expense');
+
+  const handleOpenAddModal = () => {
+    setNewTitle('');
+    setNewAmount('');
+    setNewDate(getTodayDateString());
+    setNewType('expense');
+    setNewCategoryId(categories[0]?.id || '');
+    setShowAddModal(true);
+  };
 
   // Sync default category when categories list changes or modal opens
   React.useEffect(() => {
@@ -105,7 +114,7 @@ export function TransactionsTab({
     // Reset Form & Close
     setNewTitle('');
     setNewAmount('');
-    setNewDate(new Date().toISOString().split('T')[0]);
+    setNewDate(getTodayDateString());
     setNewType('expense');
     setShowAddModal(false);
   };
@@ -145,7 +154,7 @@ export function TransactionsTab({
         </div>
         
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={handleOpenAddModal}
           className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-2 rounded-xl text-xs font-semibold shadow-md active:scale-95 transition-all cursor-pointer"
         >
           <Plus size={14} />
@@ -499,7 +508,7 @@ export function TransactionsTab({
                   </label>
                   <button
                     type="button"
-                    onClick={() => setEditDate(new Date().toISOString().split('T')[0])}
+                    onClick={() => setEditDate(getTodayDateString())}
                     className="text-[9px] font-bold text-blue-600 hover:underline bg-blue-50 px-1.5 py-0.5 rounded cursor-pointer"
                   >
                     Hoy
@@ -630,16 +639,25 @@ export function TransactionsTab({
 
               {/* Date */}
               <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-1 flex items-center gap-1">
-                  <Calendar size={12} />
-                  Fecha
-                </label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                    <Calendar size={11} />
+                    Fecha
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setNewDate(getTodayDateString())}
+                    className="text-[9px] font-bold text-blue-600 hover:underline bg-blue-50 px-1.5 py-0.5 rounded cursor-pointer"
+                  >
+                    Hoy
+                  </button>
+                </div>
                 <input
                   type="date"
                   required
                   value={newDate}
                   onChange={(e) => setNewDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 focus:bg-white text-xs text-slate-800 rounded-xl border border-slate-100 focus:border-blue-500 outline-none transition-all font-semibold"
+                  className="w-full px-3 py-2 bg-slate-50 focus:bg-white text-xs text-slate-800 rounded-xl border border-slate-100 focus:border-blue-500 outline-none transition-all font-semibold cursor-pointer"
                 />
               </div>
 

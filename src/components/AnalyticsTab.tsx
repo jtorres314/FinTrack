@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Transaction, Category } from '../types';
-import { formatCurrency } from '../utils/finance';
+import { formatCurrency, getTodayDateString } from '../utils/finance';
 import { 
   BarChart2, 
   PieChart, 
@@ -30,7 +30,7 @@ export function AnalyticsTab({ transactions, categories }: AnalyticsTabProps) {
   const [period, setPeriod] = useState<TimeFilterPeriod>('month');
   
   // Specific reference date (Defaults to current date)
-  const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayStr = useMemo(() => getTodayDateString(), []);
   const [refDateStr, setRefDateStr] = useState<string>(todayStr);
   
   // Custom range dates (if custom is chosen)

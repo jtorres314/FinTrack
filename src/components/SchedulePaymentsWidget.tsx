@@ -1,7 +1,7 @@
 import React from 'react';
 import { RecurringBill, BillFrequency, Category } from '../types';
 import { Plus, X, Calendar, DollarSign, RefreshCw, CheckCircle2, ChevronRight, AlertCircle, Tag, Save, Trash2 } from 'lucide-react';
-import { formatToDayMonth, daysBetween, parseDate, formatCurrency } from '../utils/finance';
+import { formatToDayMonth, daysBetween, parseDate, formatCurrency, getTodayDateString } from '../utils/finance';
 
 interface SchedulePaymentsWidgetProps {
   bills: RecurringBill[];
@@ -29,18 +29,18 @@ export function SchedulePaymentsWidget({
     bill: RecurringBill;
     isLastPayment: boolean;
   } | null>(null);
-  const [paymentDate, setPaymentDate] = React.useState<string>(simulatedDateStr || new Date().toISOString().split('T')[0]);
+  const [paymentDate, setPaymentDate] = React.useState<string>(simulatedDateStr || getTodayDateString());
 
   // Open Pay Modal Handler
   const handleOpenPayModal = (bill: RecurringBill, isLastPayment: boolean) => {
     setPayModalData({ bill, isLastPayment });
-    setPaymentDate(simulatedDateStr || new Date().toISOString().split('T')[0]);
+    setPaymentDate(simulatedDateStr || getTodayDateString());
   };
 
   const handleConfirmPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!payModalData) return;
-    const finalDate = paymentDate || simulatedDateStr || new Date().toISOString().split('T')[0];
+    const finalDate = paymentDate || simulatedDateStr || getTodayDateString();
     onPayBill(payModalData.bill.id, payModalData.isLastPayment, finalDate);
     setPayModalData(null);
   };
@@ -48,7 +48,7 @@ export function SchedulePaymentsWidget({
   // New Bill Form State
   const [title, setTitle] = React.useState('');
   const [amount, setAmount] = React.useState('');
-  const [dueDate, setDueDate] = React.useState(new Date().toISOString().split('T')[0]);
+  const [dueDate, setDueDate] = React.useState(getTodayDateString());
   const [frequency, setFrequency] = React.useState<BillFrequency>('monthly');
   const [notifyDays, setNotifyDays] = React.useState('3');
   const [logoType, setLogoType] = React.useState<'netflix' | 'paypal' | 'spotify' | 'other'>('other');
@@ -192,7 +192,7 @@ export function SchedulePaymentsWidget({
     // Reset and Close
     setTitle('');
     setAmount('');
-    setDueDate(new Date().toISOString().split('T')[0]);
+    setDueDate(getTodayDateString());
     setFrequency('monthly');
     setNotifyDays('3');
     setLogoType('other');
@@ -396,7 +396,7 @@ export function SchedulePaymentsWidget({
                   <div className="flex items-center gap-1.5">
                     <button
                       type="button"
-                      onClick={() => setPaymentDate(simulatedDateStr || new Date().toISOString().split('T')[0])}
+                      onClick={() => setPaymentDate(getTodayDateString())}
                       className="text-[9px] font-bold text-blue-600 hover:underline bg-blue-50 px-1.5 py-0.5 rounded"
                     >
                       Hoy

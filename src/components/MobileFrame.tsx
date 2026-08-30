@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
-import { Wifi, Battery, Smartphone } from 'lucide-react';
+import { Calendar } from 'lucide-react';
+import { formatDateDisplay, getTodayDateString } from '../utils/finance';
 
 interface MobileFrameProps {
   children: ReactNode;
@@ -8,27 +9,26 @@ interface MobileFrameProps {
 }
 
 export function MobileFrame({ children, simulatedTime, activeTab }: MobileFrameProps) {
-  const [timeStr, setTimeStr] = React.useState('09:07');
+  const [todayDateStr, setTodayDateStr] = React.useState(getTodayDateString());
 
   React.useEffect(() => {
-    // Show current time formatted beautifully
-    const updateClock = () => {
-      const now = new Date();
-      let hours = now.getHours();
-      const minutes = String(now.getMinutes()).padStart(2, '0');
-      const ampm = hours >= 12 ? 'PM' : 'AM';
-      hours = hours % 12;
-      hours = hours ? hours : 12; // the hour '0' should be '12'
-      setTimeStr(`${hours}:${minutes} ${ampm}`);
+    // Keep date up to date with user's local day
+    const updateToday = () => {
+      setTodayDateStr(getTodayDateString());
     };
 
-    updateClock();
-    const interval = setInterval(updateClock, 30000); // update every 30s
-    return () => clearInterval(interval);
+    updateToday();
+    window.addEventListener('focus', updateToday);
+    const interval = setInterval(updateToday, 30000); // check every 30s
+    return () => {
+      window.removeEventListener('focus', updateToday);
+      clearInterval(interval);
+    };
   }, []);
 
-  // Display time: use simulatedTime if provided, otherwise standard clock
-  const displayTime = simulatedTime || timeStr;
+  // Display date: use simulatedTime if provided, otherwise standard today date
+  const activeDate = simulatedTime || todayDateStr;
+  const displayFormatted = formatDateDisplay(activeDate);
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center py-4 px-2 md:py-8 select-none font-sans antialiased text-slate-800">
@@ -40,8 +40,11 @@ export function MobileFrame({ children, simulatedTime, activeTab }: MobileFrameP
 
         {/* Top Header/Status Bar */}
         <div className="w-full h-11 px-6 pt-2 bg-white flex justify-between items-center text-xs font-semibold select-none z-40 text-slate-700">
-          <div>{displayTime}</div>
-          <div className="text-slate-400 font-normal text-[11px] tracking-wide">
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-700">
+            <Calendar size={13} className="text-blue-600 shrink-0" />
+            <span>{displayFormatted}</span>
+          </div>
+          <div className="text-slate-400 font-bold text-[11px] tracking-wide">
             FinTrack
           </div>
         </div>
