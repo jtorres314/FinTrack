@@ -264,6 +264,19 @@ export function AnalyticsTab({ transactions, categories }: AnalyticsTabProps) {
 
   // Calculate coordinates for donut slices
   const makeDonutPath = (startAngle: number, endAngle: number, radius: number, innerRadius: number) => {
+    // If the slice represents 100% of the pie (or practically 360 deg), draw complete donut ring
+    if (endAngle - startAngle >= 359.9) {
+      return `
+        M 0 ${-radius}
+        A ${radius} ${radius} 0 1 1 0 ${radius}
+        A ${radius} ${radius} 0 1 1 0 ${-radius}
+        M 0 ${-innerRadius}
+        A ${innerRadius} ${innerRadius} 0 1 0 0 ${innerRadius}
+        A ${innerRadius} ${innerRadius} 0 1 0 0 ${-innerRadius}
+        Z
+      `;
+    }
+
     const toRadians = (angle: number) => (angle - 90) * Math.PI / 180;
     
     const x1 = radius * Math.cos(toRadians(startAngle));
